@@ -1,0 +1,48 @@
+version: "3"
+services:
+  database-server:
+    image: postgres:12.3
+    container_name: database-server
+    restart: on-failure
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=B8313aTcSgPp7kd099e!K#IFtLy&D#UY
+      - POSTGRES_DB=postgres
+    volumes:
+      - database-files:/var/lib/postgresql/data/
+  wsgi-server:
+    build:
+      context: .
+      dockerfile: etc/wsgi-server/Dockerfile
+    container_name: wsgi-server
+    restart: on-failure
+    ports:
+      - 3031:3031
+    environment:
+      - DEBUG=True
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=B8313aTcSgPp7kd099e!K#IFtLy&D#UY
+      - DB_HOST=database-server
+      - DB_PORT=5432
+    depends_on:
+      - database-server
+    volumes:
+      - staticfiles:/usr/src/app/staticfiles/
+  web-server:
+    image: nginx:latest
+    container_name: web-server
+    restart: on-failure
+    ports:
+      - 443:443
+      - 80:80
+    depends_on:
+      - wsgi-server
+    volumes:
+      - ./etc/web-server:/etc/nginx/conf.d/
+      - staticfiles:/usr/share/nginx/staticfiles/
+volumes:
+  staticfiles:
+  database-files:
