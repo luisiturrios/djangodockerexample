@@ -1,5 +1,13 @@
 version: "3"
 services:
+  message-broker:
+    image: rabbitmq:3.8.3
+    container_name: message-broker
+    restart: on-failure
+    ports:
+      - 5672:5672
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=celeryapp/
   database-server:
     image: postgres:12.3
     container_name: database-server
@@ -12,6 +20,38 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - database-files:/var/lib/postgresql/data/
+  celery-beat:
+    build:
+      context: .
+      dockerfile: etc/celery-beat/Dockerfile
+    container_name: celery-beat
+    restart: on-failure
+    environment:
+      - DEBUG=True
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=B8313aTcSgPp7kd099e!K#IFtLy&D#UY
+      - DB_HOST=database-server
+      - DB_PORT=5432
+    depends_on:
+      - message-broker
+      - database-server
+  celery-worker:
+    build:
+      context: .
+      dockerfile: etc/celery-worker/Dockerfile
+    container_name: celery-worker
+    restart: on-failure
+    environment:
+      - DEBUG=True
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=B8313aTcSgPp7kd099e!K#IFtLy&D#UY
+      - DB_HOST=database-server
+      - DB_PORT=5432
+    depends_on:
+      - message-broker
+      - database-server
   wsgi-server:
     build:
       context: .
@@ -28,6 +68,7 @@ services:
       - DB_HOST=database-server
       - DB_PORT=5432
     depends_on:
+      - message-broker
       - database-server
     volumes:
       - staticfiles:/usr/src/app/staticfiles/
